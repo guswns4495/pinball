@@ -1,0 +1,312 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0a0a2e;
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    overflow-x: hidden;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    width: 100%;
+    max-width: 700px;
+}
+
+.neon-title {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #0ff;
+    text-shadow:
+        0 0 7px #0ff,
+        0 0 20px #0ff,
+        0 0 42px #0ff,
+        0 0 80px #08f;
+    margin-bottom: 24px;
+    letter-spacing: 6px;
+}
+
+/* Setup Panel */
+#setup-panel {
+    background: rgba(10, 10, 46, 0.85);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 12px;
+    padding: 28px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.neon-label {
+    font-size: 0.8rem;
+    color: #0ff;
+    text-shadow: 0 0 6px #0ff;
+    letter-spacing: 2px;
+}
+
+.winner-count-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+#winner-count {
+    width: 60px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 8px;
+    color: #0ff;
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 8px 10px;
+    text-align: center;
+    outline: none;
+}
+
+#winner-count:focus {
+    border-color: #0ff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
+#names-input {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    padding: 12px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+#names-input:focus {
+    border-color: #0ff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
+#names-input::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+/* Buttons */
+.neon-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 4px;
+    padding: 12px 32px;
+    border: 2px solid;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.3s;
+}
+
+.neon-btn.cyan {
+    color: #0ff;
+    border-color: #0ff;
+    text-shadow: 0 0 8px #0ff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3), inset 0 0 10px rgba(0, 255, 255, 0.1);
+}
+
+.neon-btn.cyan:hover {
+    background: rgba(0, 255, 255, 0.15);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5), inset 0 0 20px rgba(0, 255, 255, 0.2);
+}
+
+.neon-btn.pink {
+    color: #f0f;
+    border-color: #f0f;
+    text-shadow: 0 0 8px #f0f;
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.3), inset 0 0 10px rgba(255, 0, 255, 0.1);
+}
+
+.neon-btn.pink:hover {
+    background: rgba(255, 0, 255, 0.15);
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.5), inset 0 0 20px rgba(255, 0, 255, 0.2);
+}
+
+.neon-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Game Area */
+#game-area {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#canvas-wrap {
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 80vh;
+    border: 1px solid rgba(0, 100, 255, 0.3);
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 100, 255, 0.15);
+}
+
+#pinball-canvas {
+    display: block;
+}
+
+#fireworks-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Scoreboard */
+#scoreboard {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 12px;
+    padding: 8px;
+}
+
+.score-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid;
+    font-size: 0.7rem;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1px;
+    transition: all 0.3s;
+}
+
+.score-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.score-chip.winner {
+    animation: chipGlow 0.4s ease-in-out infinite alternate;
+    transform: scale(1.1);
+}
+
+@keyframes chipGlow {
+    from { filter: brightness(1); }
+    to { filter: brightness(1.8); }
+}
+
+#controls {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+/* Winner Overlay */
+#winner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.82);
+    z-index: 100;
+    pointer-events: none;
+    animation: overlayFadeIn 0.5s ease-out;
+}
+
+@keyframes overlayFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#winner-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+#winner-text {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #ff0;
+    text-shadow:
+        0 0 10px #ff0,
+        0 0 30px #ff0,
+        0 0 60px #fa0,
+        0 0 100px #fa0,
+        0 0 150px #f80;
+    text-align: center;
+    animation: winPulse 0.6s ease-in-out infinite alternate;
+    margin-bottom: 8px;
+}
+
+#winner-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.winner-entry {
+    font-size: 1.4rem;
+    font-weight: 900;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 3px;
+    padding: 10px 28px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid;
+    animation: entrySlideIn 0.6s ease-out both;
+}
+
+@keyframes entrySlideIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.8); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes winPulse {
+    from {
+        transform: scale(1);
+        text-shadow: 0 0 10px #ff0, 0 0 30px #ff0, 0 0 60px #fa0;
+    }
+    to {
+        transform: scale(1.08);
+        text-shadow: 0 0 15px #ff0, 0 0 40px #ff0, 0 0 80px #fa0, 0 0 120px #f80;
+    }
+}
+
+.hidden {
+    display: none !important;
+}

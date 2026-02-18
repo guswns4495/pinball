@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEON PINBALL RACE</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1 class="neon-title">NEON PINBALL RACE</h1>
+
+        <div id="setup-panel">
+            <label class="neon-label">참가자 이름 (줄바꿈 구분)</label>
+            <textarea id="names-input" rows="6" placeholder="홍길동&#10;김철수&#10;이영희&#10;박민수"></textarea>
+            <div class="winner-count-row">
+                <label class="neon-label">우승 인원</label>
+                <input type="number" id="winner-count" min="1" value="1">
+            </div>
+            <button id="btn-start" class="neon-btn cyan">START</button>
+        </div>
+
+        <div id="game-area" class="hidden">
+            <div id="scoreboard"></div>
+            <div id="canvas-wrap">
+                <canvas id="pinball-canvas"></canvas>
+                <canvas id="fireworks-canvas"></canvas>
+            </div>
+            <div id="winner-overlay" class="hidden">
+                <div id="winner-content">
+                    <div id="winner-text"></div>
+                    <div id="winner-list"></div>
+                </div>
+            </div>
+            <div id="controls">
+                <button id="btn-drop" class="neon-btn pink hidden">RACE!</button>
+                <button id="btn-reset" class="neon-btn cyan">RESET</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
