@@ -6,6 +6,7 @@
     <title>NEON PINBALL RACE</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -23,9 +24,32 @@
 
         <div id="game-area" class="hidden">
             <div id="scoreboard"></div>
-            <div id="canvas-wrap">
-                <canvas id="pinball-canvas"></canvas>
-                <canvas id="fireworks-canvas"></canvas>
+            <div id="race-container">
+                <div id="live-ranking"></div>
+                <div id="canvas-wrap">
+                    <canvas id="pinball-canvas"></canvas>
+                    <canvas id="fireworks-canvas"></canvas>
+                </div>
+                <div id="chat-panel">
+                    <div class="chat-header">
+                        <span class="chat-title">CHAT</span>
+                        <span id="chat-status" class="chat-status">offline</span>
+                    </div>
+                    <div id="chat-room-info">
+                        <button id="btn-create-room" class="chat-btn">방 만들기</button>
+                        <div id="chat-link-box" class="hidden">
+                            <span class="chat-label">초대 링크</span>
+                            <input id="chat-link" type="text" readonly>
+                            <button id="btn-copy-link" class="chat-btn small">복사</button>
+                        </div>
+                        <div id="chat-users"><span class="chat-label">접속: <span id="chat-user-count">0</span>명</span></div>
+                    </div>
+                    <div id="chat-messages"></div>
+                    <div id="chat-input-row">
+                        <input id="chat-input" type="text" placeholder="메시지 입력..." maxlength="200" disabled>
+                        <button id="btn-chat-send" class="chat-btn small" disabled>전송</button>
+                    </div>
+                </div>
             </div>
             <div id="winner-overlay" class="hidden">
                 <div id="winner-content">
@@ -41,5 +65,6 @@
     </div>
 
     <script src="game.js"></script>
+    <script src="chat.js"></script>
 </body>
 </html>

@@ -22,7 +22,7 @@ body {
     align-items: center;
     padding: 20px;
     width: 100%;
-    max-width: 700px;
+    max-width: 1100px;
 }
 
 .neon-title {
@@ -158,6 +158,87 @@ body {
     align-items: center;
 }
 
+/* Race container: ranking + canvas side by side */
+#race-container {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    width: 100%;
+    justify-content: center;
+}
+
+/* Live Ranking Panel */
+#live-ranking {
+    width: 140px;
+    min-width: 140px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(0, 255, 255, 0.25);
+    border-radius: 8px;
+    padding: 10px 8px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: sticky;
+    top: 10px;
+}
+
+#live-ranking .rank-title {
+    font-size: 0.6rem;
+    font-weight: 900;
+    color: #0ff;
+    text-shadow: 0 0 6px #0ff;
+    letter-spacing: 2px;
+    text-align: center;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+#live-ranking .rank-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px;
+    border-radius: 6px;
+    margin-bottom: 3px;
+    font-size: 0.55rem;
+    font-weight: 700;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+#live-ranking .rank-item .rank-num {
+    min-width: 18px;
+    text-align: center;
+    font-size: 0.6rem;
+    opacity: 0.7;
+}
+
+#live-ranking .rank-item .rank-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+#live-ranking .rank-item .rank-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#live-ranking .rank-item .rank-stage {
+    font-size: 0.45rem;
+    opacity: 0.5;
+    letter-spacing: 0;
+}
+
+#live-ranking .rank-item.finished {
+    opacity: 0.5;
+}
+
 #canvas-wrap {
     position: relative;
     overflow-y: auto;
@@ -166,6 +247,194 @@ body {
     border: 1px solid rgba(0, 100, 255, 0.3);
     border-radius: 8px;
     box-shadow: 0 0 20px rgba(0, 100, 255, 0.15);
+    flex-shrink: 0;
+}
+
+/* Chat Panel */
+#chat-panel {
+    width: 200px;
+    min-width: 200px;
+    max-height: 80vh;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 0, 255, 0.25);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 10px;
+    overflow: hidden;
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 0, 255, 0.2);
+}
+
+.chat-title {
+    font-size: 0.6rem;
+    font-weight: 900;
+    color: #f0f;
+    text-shadow: 0 0 6px #f0f;
+    letter-spacing: 2px;
+}
+
+.chat-status {
+    font-size: 0.5rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 8px;
+    letter-spacing: 1px;
+}
+
+.chat-status.online {
+    color: #0f0;
+    background: rgba(0, 255, 0, 0.1);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+}
+
+.chat-status.offline {
+    color: #888;
+    background: rgba(128, 128, 128, 0.1);
+    border: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.chat-status.connecting {
+    color: #ff0;
+    background: rgba(255, 255, 0, 0.1);
+    border: 1px solid rgba(255, 255, 0, 0.3);
+}
+
+#chat-room-info {
+    padding: 8px;
+    border-bottom: 1px solid rgba(255, 0, 255, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.chat-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 0.55rem;
+    letter-spacing: 1px;
+    padding: 6px 10px;
+    border: 1px solid #f0f;
+    border-radius: 6px;
+    color: #f0f;
+    background: rgba(255, 0, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-shadow: 0 0 4px #f0f;
+}
+
+.chat-btn:hover {
+    background: rgba(255, 0, 255, 0.25);
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+}
+
+.chat-btn.small {
+    padding: 4px 8px;
+    font-size: 0.5rem;
+}
+
+.chat-label {
+    font-size: 0.5rem;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 1px;
+}
+
+#chat-link {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 0, 255, 0.2);
+    border-radius: 4px;
+    color: #f0f;
+    font-family: monospace;
+    font-size: 0.5rem;
+    padding: 4px 6px;
+    outline: none;
+    margin: 4px 0;
+}
+
+#chat-link-box {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+#chat-link-box .chat-btn {
+    align-self: flex-end;
+}
+
+#chat-users {
+    font-size: 0.5rem;
+}
+
+#chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 200px;
+}
+
+.chat-msg {
+    font-size: 0.5rem;
+    font-family: 'Orbitron', sans-serif;
+    padding: 4px 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+.chat-msg .msg-name {
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+.chat-msg.system {
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+    text-align: center;
+    background: none;
+}
+
+#chat-input-row {
+    display: flex;
+    gap: 4px;
+    padding: 6px 8px;
+    border-top: 1px solid rgba(255, 0, 255, 0.15);
+}
+
+#chat-input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 0, 255, 0.2);
+    border-radius: 6px;
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.5rem;
+    padding: 6px 8px;
+    outline: none;
+}
+
+#chat-input:focus {
+    border-color: #f0f;
+    box-shadow: 0 0 6px rgba(255, 0, 255, 0.2);
+}
+
+#chat-input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+#chat-input:disabled {
+    opacity: 0.4;
 }
 
 #pinball-canvas {

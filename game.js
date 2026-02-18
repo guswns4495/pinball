@@ -3,7 +3,7 @@
 
     // --- Layout ---
     const CANVAS_W = 660;
-    const CANVAS_H = 2200;
+    const CANVAS_H = 5400;
     const WALL_T = 14;
     const PIN_RADIUS = 5;
     const BALL_RADIUS = 9;
@@ -16,17 +16,25 @@
     const NEON_COLORS = [
         '#ff00ff', '#00ff66', '#ffff00', '#bf5fff',
         '#ff6644', '#00ffff', '#ff3388', '#88ff00',
+        '#ff4488', '#44ffcc', '#ffaa00', '#aa88ff',
+        '#ff2200', '#00ffaa', '#ddff00', '#ff66aa',
+        '#66aaff', '#ccff66', '#ff8866', '#88ddff',
+        '#ff55cc', '#55ffaa', '#aaff44', '#cc66ff',
+        '#ff9944', '#44ddff', '#ff2266', '#66ff88',
+        '#ddaa00', '#00aaff', '#ff77aa', '#77ffdd',
+        '#ee44aa', '#44ffee', '#ffcc44', '#aa44dd',
+        '#ff8800', '#00ff88', '#dd00ff', '#88ffaa',
     ];
 
     // --- Stages ---
     // Each stage occupies a vertical band with its own obstacle theme
     const STAGES = [
-        { name: 'PIN FIELD',     yStart: 100,  yEnd: 520,  color: '#00ffff', type: 'pins' },
-        { name: 'BUMPER ZONE',   yStart: 520,  yEnd: 860,  color: '#ff8800', type: 'bumpers' },
-        { name: 'SPINNER ALLEY', yStart: 860,  yEnd: 1200, color: '#aa44ff', type: 'spinners' },
-        { name: 'RAMP CANYON',   yStart: 1200, yEnd: 1540, color: '#00ddff', type: 'ramps' },
-        { name: 'LAUNCH PAD',   yStart: 1540, yEnd: 1900, color: '#ff4400', type: 'launchers' },
-        { name: 'FINAL RUN',    yStart: 1900, yEnd: 2150, color: '#ffff00', type: 'final' },
+        { name: 'PIN FIELD',     yStart: 100,  yEnd: 1100, color: '#00e5ff', type: 'pins' },
+        { name: 'BUMPER ZONE',   yStart: 1100, yEnd: 1980, color: '#ff9100', type: 'bumpers' },
+        { name: 'SPINNER ALLEY', yStart: 1980, yEnd: 2860, color: '#d050ff', type: 'spinners' },
+        { name: 'RAMP CANYON',   yStart: 2860, yEnd: 3740, color: '#00e676', type: 'ramps' },
+        { name: 'LAUNCH PAD',   yStart: 3740, yEnd: 4620, color: '#ff1744', type: 'launchers' },
+        { name: 'FINAL RUN',    yStart: 4620, yEnd: 5350, color: '#ffea00', type: 'final' },
     ];
 
     // --- State ---
@@ -37,6 +45,8 @@
     let zones = [];
     let obstacles = [];
     let wallBumps = [];
+    let wormholes = [];       // { x, y, r, side, stageIdx, body, color, pairType:'entry'|'exit', hitTime }
+    let rotatingGates = [];   // { x, y, w, body, speed }
     let finishSensor = null;
     let gameRunning = false;
     let finishOrder = [];
@@ -59,6 +69,7 @@
     const winnerCountInput = document.getElementById('winner-count');
     const scoreboard = document.getElementById('scoreboard');
     const fireworksCanvas = document.getElementById('fireworks-canvas');
+    const liveRanking = document.getElementById('live-ranking');
 
     btnStart.addEventListener('click', startGame);
     btnDrop.addEventListener('click', dropBalls);
@@ -86,7 +97,7 @@
         if (!raw) return;
         participants = raw.split('\n').map(n => n.trim()).filter(n => n.length > 0);
         if (participants.length < 2) return alert('2명 이상의 참가자를 입력하세요.');
-        if (participants.length > 8) return alert('최대 8명까지 가능합니다.');
+        if (participants.length > 40) return alert('최대 40명까지 가능합니다.');
 
         winnerCount = Math.max(1, Math.min(
             parseInt(winnerCountInput.value) || 1,
@@ -122,7 +133,7 @@
 
     function initPhysics() {
         engine = Engine.create();
-        engine.gravity.y = 0.35;
+        engine.gravity.y = 0.42;
         canvas.width = CANVAS_W;
         canvas.height = CANVAS_H;
         runner = Runner.create();
@@ -199,109 +210,262 @@
                 }
             }
 
-            // Scatter a few zones
-            if (Math.random() < 0.2) {
-                const zoneTypes = ['jump', 'speed', 'slow', 'vortex'];
-                const type = zoneTypes[Math.floor(Math.random() * 4)];
-                const zw = 44 + Math.random() * 20;
-                const zh = 20;
+            // Scatter a few zones in pin field
+            if (Math.random() < 0.15) {
+                const zoneTypes = ['jump', 'speed'];
+                const type = zoneTypes[Math.floor(Math.random() * 2)];
+                const zw = 44 + Math.random() * 16;
+                const zh = 18;
                 const zx = area.left + Math.random() * (availW - zw - 20) + 10;
                 addZone(bodies, type, zx, y - 5, zw, zh);
             }
         }
 
         // ============================
-        // STAGE 2: BUMPER ZONE — bouncy circles everywhere
+        // STAGE 2: BUMPER ZONE — bouncy circles (8 main + 2 ramps as accents)
         // ============================
         const s2 = STAGES[1];
-        // Sparse pins as backdrop
-        addSparsePins(bodies, po, s2, getSafeArea, 60, 6);
+        addSparsePins(bodies, po, s2, getSafeArea, 65, 5);
 
-        for (let i = 0; i < 12; i++) {
-            const y = s2.yStart + 30 + Math.random() * (s2.yEnd - s2.yStart - 60);
+        for (let i = 0; i < 8; i++) {
+            const y = s2.yStart + 35 + (s2.yEnd - s2.yStart - 70) * (i / 7);
             const area = getSafeArea(y);
-            const r = 14 + Math.random() * 12;
-            const x = area.left + r + Math.random() * (area.right - area.left - r * 2);
+            const r = 14 + Math.random() * 10;
+            const x = area.left + r + 20 + Math.random() * (area.right - area.left - r * 2 - 40);
             const b = Bodies.circle(x, y, r, {
                 isStatic: true, restitution: 1.4, friction: 0, label: 'bumper',
             });
             bodies.push(b);
             obstacles.push({ type: 'bumper', x, y, r, body: b, hitTime: 0 });
         }
+        // Accent: 2 small ramps
+        for (let i = 0; i < 2; i++) {
+            const y = s2.yStart + 80 + i * 160;
+            const area = getSafeArea(y);
+            const rw = 45 + Math.random() * 20;
+            const x = area.left + rw / 2 + Math.random() * (area.right - area.left - rw);
+            const angle = (i % 2 === 0 ? 1 : -1) * 0.3;
+            const bar = Bodies.rectangle(x, y, rw, 5, { isStatic: true, restitution: 0.4, friction: 0, label: 'ramp', angle });
+            bodies.push(bar);
+            obstacles.push({ type: 'ramp', x, y, w: rw, h: 5, body: bar, angle });
+        }
+        addStageZones(bodies, s2, getSafeArea, 2, ['speed', 'vortex']);
 
         // ============================
-        // STAGE 3: SPINNER ALLEY — rotating bars
+        // STAGE 3: SPINNER ALLEY — rotating bars (7 main + 2 bumpers as accents)
         // ============================
         const s3 = STAGES[2];
         addSparsePins(bodies, po, s3, getSafeArea, 65, 5);
 
-        for (let i = 0; i < 8; i++) {
-            const y = s3.yStart + 40 + (s3.yEnd - s3.yStart - 80) * (i / 7);
+        for (let i = 0; i < 7; i++) {
+            const y = s3.yStart + 35 + (s3.yEnd - s3.yStart - 70) * (i / 6);
             const area = getSafeArea(y);
-            const sw = 55 + Math.random() * 35;
-            const x = area.left + sw / 2 + Math.random() * (area.right - area.left - sw);
+            const sw = 50 + Math.random() * 30;
+            const x = area.left + sw / 2 + 15 + Math.random() * (area.right - area.left - sw - 30);
             const bar = Bodies.rectangle(x, y, sw, 5, {
                 isStatic: true, restitution: 0.5, friction: 0, label: 'spinner',
             });
             bodies.push(bar);
             obstacles.push({
                 type: 'spinner', x, y, w: sw, h: 5, body: bar,
-                speed: (i % 2 === 0 ? 1 : -1) * (0.012 + Math.random() * 0.012),
+                speed: (i % 2 === 0 ? 1 : -1) * (0.012 + Math.random() * 0.01),
             });
         }
+        // Accent: 2 bumpers
+        for (let i = 0; i < 2; i++) {
+            const y = s3.yStart + 60 + i * 180;
+            const area = getSafeArea(y);
+            const r = 12 + Math.random() * 8;
+            const x = area.left + r + 20 + Math.random() * (area.right - area.left - r * 2 - 40);
+            const b = Bodies.circle(x, y, r, { isStatic: true, restitution: 1.2, friction: 0, label: 'bumper' });
+            bodies.push(b);
+            obstacles.push({ type: 'bumper', x, y, r, body: b, hitTime: 0 });
+        }
+        addStageZones(bodies, s3, getSafeArea, 2, ['slow', 'vortex']);
 
         // ============================
-        // STAGE 4: RAMP CANYON — angled deflectors
+        // STAGE 4: RAMP CANYON — angled deflectors (7 main + 2 spinners as accents)
         // ============================
         const s4 = STAGES[3];
         addSparsePins(bodies, po, s4, getSafeArea, 65, 5);
 
-        for (let i = 0; i < 10; i++) {
-            const y = s4.yStart + 30 + (s4.yEnd - s4.yStart - 60) * (i / 9);
+        for (let i = 0; i < 7; i++) {
+            const y = s4.yStart + 35 + (s4.yEnd - s4.yStart - 70) * (i / 6);
             const area = getSafeArea(y);
-            const rw = 55 + Math.random() * 35;
-            const x = area.left + rw / 2 + Math.random() * (area.right - area.left - rw);
-            const angle = (i % 2 === 0 ? 1 : -1) * (0.25 + Math.random() * 0.3);
+            const rw = 50 + Math.random() * 30;
+            const x = area.left + rw / 2 + 15 + Math.random() * (area.right - area.left - rw - 30);
+            const angle = (i % 2 === 0 ? 1 : -1) * (0.25 + Math.random() * 0.25);
             const bar = Bodies.rectangle(x, y, rw, 5, {
                 isStatic: true, restitution: 0.4, friction: 0, label: 'ramp', angle,
             });
             bodies.push(bar);
             obstacles.push({ type: 'ramp', x, y, w: rw, h: 5, body: bar, angle });
         }
+        // Accent: 2 spinners
+        for (let i = 0; i < 2; i++) {
+            const y = s4.yStart + 70 + i * 170;
+            const area = getSafeArea(y);
+            const sw = 45 + Math.random() * 20;
+            const x = area.left + sw / 2 + Math.random() * (area.right - area.left - sw);
+            const bar = Bodies.rectangle(x, y, sw, 5, { isStatic: true, restitution: 0.5, friction: 0, label: 'spinner' });
+            bodies.push(bar);
+            obstacles.push({ type: 'spinner', x, y, w: sw, h: 5, body: bar, speed: (i % 2 === 0 ? 1 : -1) * 0.015 });
+        }
+        addStageZones(bodies, s4, getSafeArea, 3, ['jump', 'speed', 'slow']);
 
         // ============================
-        // STAGE 5: LAUNCH PAD — launchers that blast balls back up
+        // STAGE 5: LAUNCH PAD — launchers (6 main + 3 bumpers as accents)
         // ============================
         const s5 = STAGES[4];
         addSparsePins(bodies, po, s5, getSafeArea, 70, 4);
 
-        for (let i = 0; i < 7; i++) {
-            const y = s5.yStart + 40 + (s5.yEnd - s5.yStart - 80) * (i / 6);
+        for (let i = 0; i < 6; i++) {
+            const y = s5.yStart + 40 + (s5.yEnd - s5.yStart - 80) * (i / 5);
             const area = getSafeArea(y);
-            const x = area.left + 30 + Math.random() * (area.right - area.left - 60);
+            const availW = area.right - area.left;
+            if (availW < 50) continue;
+            const x = area.left + 30 + Math.random() * (availW - 60);
             const lb = Bodies.circle(x, y, 16, {
                 isStatic: true, isSensor: true, label: 'launcher',
             });
             bodies.push(lb);
             obstacles.push({ type: 'launcher', x, y, r: 16, body: lb, hitTime: 0 });
         }
+        // Accent: 3 small bumpers
+        for (let i = 0; i < 3; i++) {
+            const y = s5.yStart + 60 + i * 110;
+            const area = getSafeArea(y);
+            const availW = area.right - area.left;
+            if (availW < 40) continue;
+            const r = 10 + Math.random() * 6;
+            const x = area.left + r + 10 + Math.random() * (availW - r * 2 - 20);
+            const b = Bodies.circle(x, y, r, { isStatic: true, restitution: 1.3, friction: 0, label: 'bumper' });
+            bodies.push(b);
+            obstacles.push({ type: 'bumper', x, y, r, body: b, hitTime: 0 });
+        }
+        addStageZones(bodies, s5, getSafeArea, 2, ['jump', 'vortex']);
 
         // ============================
-        // STAGE 6: FINAL RUN — very sparse, just a few pins in the narrowing
+        // STAGE 6: FINAL RUN — mixed gauntlet (sparse pins + 3 bumpers + 2 launchers)
         // ============================
         const s6 = STAGES[5];
         for (let row = 0; row < 5; row++) {
-            const y = s6.yStart + 30 + row * 45;
+            const y = s6.yStart + 25 + row * 42;
             const area = getSafeArea(y);
             const availW = area.right - area.left;
-            if (availW < 60) continue;
-            const cols = Math.max(2, Math.floor(availW / 60));
+            if (availW < 50) continue;
+            const cols = Math.max(2, Math.floor(availW / 55));
             for (let col = 0; col < cols; col++) {
-                if (Math.random() < 0.3) continue; // skip some
+                if (Math.random() < 0.35) continue;
                 const x = area.left + 15 + (availW - 30) * (col / Math.max(1, cols - 1));
                 bodies.push(Bodies.circle(x, y + (Math.random() - 0.5) * 8, PIN_RADIUS, po));
             }
         }
+        // 3 small bumpers in the narrowing
+        for (let i = 0; i < 3; i++) {
+            const y = s6.yStart + 30 + i * 65;
+            const area = getSafeArea(y);
+            const availW = area.right - area.left;
+            if (availW < 40) continue;
+            const r = 10 + Math.random() * 5;
+            const x = area.left + r + 8 + Math.random() * (availW - r * 2 - 16);
+            const b = Bodies.circle(x, y, r, { isStatic: true, restitution: 1.2, friction: 0, label: 'bumper' });
+            bodies.push(b);
+            obstacles.push({ type: 'bumper', x, y, r, body: b, hitTime: 0 });
+        }
+        // 2 launchers for last-second drama
+        for (let i = 0; i < 2; i++) {
+            const y = s6.yStart + 50 + i * 80;
+            const area = getSafeArea(y);
+            const availW = area.right - area.left;
+            if (availW < 45) continue;
+            const x = area.left + 20 + Math.random() * (availW - 40);
+            const lb = Bodies.circle(x, y, 14, { isStatic: true, isSensor: true, label: 'launcher' });
+            bodies.push(lb);
+            obstacles.push({ type: 'launcher', x, y, r: 14, body: lb, hitTime: 0 });
+        }
+
+        // ============================
+        // WORMHOLES — each stage 0-4 gets 1 exit wormhole on wall, stage 5 gets 2 entry wormholes
+        // ============================
+        wormholes = [];
+        const WORMHOLE_R = 18;
+
+        // Exit wormholes (stages 0-4): placed on alternating walls
+        for (let si = 0; si < 5; si++) {
+            const stage = STAGES[si];
+            const wy = stage.yStart + (stage.yEnd - stage.yStart) * (0.4 + Math.random() * 0.3);
+            const wallPos = getWallX(wy);
+            const side = si % 2 === 0 ? 'left' : 'right';
+            const wx = side === 'left' ? wallPos.left + WORMHOLE_R + 8 : wallPos.right - WORMHOLE_R - 8;
+            const wb = Bodies.circle(wx, wy, WORMHOLE_R, {
+                isStatic: true, isSensor: true, label: 'wormhole_exit_' + si,
+            });
+            bodies.push(wb);
+            wormholes.push({ x: wx, y: wy, r: WORMHOLE_R, side, stageIdx: si, body: wb, color: stage.color, pairType: 'exit', hitTime: 0 });
+        }
+
+        // Entry wormholes (stage 5 - FINAL RUN): 2 wormholes on walls
+        const s6Final = STAGES[5];
+        for (let i = 0; i < 2; i++) {
+            const wy = s6Final.yStart + 120 + i * 280;
+            const wallPos = getWallX(wy);
+            const side = i === 0 ? 'left' : 'right';
+            const wx = side === 'left' ? wallPos.left + WORMHOLE_R + 8 : wallPos.right - WORMHOLE_R - 8;
+            const wb = Bodies.circle(wx, wy, WORMHOLE_R, {
+                isStatic: true, isSensor: true, label: 'wormhole_entry_' + i,
+            });
+            bodies.push(wb);
+            wormholes.push({ x: wx, y: wy, r: WORMHOLE_R, side, stageIdx: 5, body: wb, color: s6Final.color, pairType: 'entry', hitTime: 0 });
+        }
+
+        // ============================
+        // ROTATING GATES — slow-spinning barriers before finish
+        // ============================
+        rotatingGates = [];
+        const gateY1 = FINISH_Y - 120;
+        const gateY2 = FINISH_Y - 60;
+        for (const gy of [gateY1, gateY2]) {
+            const gWall = getWallX(gy);
+            const gw = (gWall.right - gWall.left) * 0.7;
+            const gx = CANVAS_W / 2;
+            const gateBody = Bodies.rectangle(gx, gy, gw, 6, {
+                isStatic: true, restitution: 0.3, friction: 0.1, label: 'gate',
+            });
+            bodies.push(gateBody);
+            rotatingGates.push({ x: gx, y: gy, w: gw, body: gateBody, speed: gy === gateY1 ? 0.018 : -0.018 });
+        }
+
+        // ============================
+        // BOUNCE WALL SEGMENTS — part of the wall itself
+        // Right side: near rotating gates, Left side: a bit higher
+        // ============================
+        const bwRightY = FINISH_Y - 80;  // 회전문 근처
+        const bwLeftY = FINISH_Y - 200;  // 좀 더 윗쪽
+        const bwHeight = 60;
+
+        // Right wall bounce segment — replaces wall bumps in that range
+        const bwRWall = getWallX(bwRightY);
+        for (let dy = -bwHeight / 2; dy <= bwHeight / 2; dy += 15) {
+            const y = bwRightY + dy;
+            const wp = getWallX(y);
+            const bumpBody = Bodies.circle(wp.right - 12, y, 14, {
+                isStatic: true, restitution: 1.8, friction: 0, label: 'wallbounce_right',
+            });
+            bodies.push(bumpBody);
+        }
+        obstacles.push({ type: 'wallbounce', side: 'right', y: bwRightY, h: bwHeight, hitTime: 0 });
+
+        // Left wall bounce segment — higher up
+        for (let dy = -bwHeight / 2; dy <= bwHeight / 2; dy += 15) {
+            const y = bwLeftY + dy;
+            const wp = getWallX(y);
+            const bumpBody = Bodies.circle(wp.left + 12, y, 14, {
+                isStatic: true, restitution: 1.8, friction: 0, label: 'wallbounce_left',
+            });
+            bodies.push(bumpBody);
+        }
+        obstacles.push({ type: 'wallbounce', side: 'left', y: bwLeftY, h: bwHeight, hitTime: 0 });
 
         // Finish line sensor
         const finishWall = getWallX(FINISH_Y);
@@ -346,6 +510,20 @@
         zones.push({ body: zoneBody, type, x, y, w, h, isBonus, hitTime: 0 });
     }
 
+    function addStageZones(bodies, stage, getSafeArea, count, typePool) {
+        for (let i = 0; i < count; i++) {
+            const y = stage.yStart + 40 + (stage.yEnd - stage.yStart - 80) * ((i + 0.5) / count);
+            const area = getSafeArea(y);
+            const availW = area.right - area.left;
+            if (availW < 60) continue;
+            const type = typePool[Math.floor(Math.random() * typePool.length)];
+            const zw = 40 + Math.random() * 16;
+            const zh = 18;
+            const zx = area.left + 10 + Math.random() * (availW - zw - 20);
+            addZone(bodies, type, zx, y, zw, zh);
+        }
+    }
+
     // ===================== DROP =====================
 
     function dropBalls() {
@@ -367,7 +545,7 @@
                 restitution: 0.4, friction: 0.05, density: 0.0012, label: 'ball_' + i,
             });
             Composite.add(engine.world, body);
-            balls.push({ body, name, color, idx: i, trail: [], finished: false, stuckTimer: 0 });
+            balls.push({ body, name, color, idx: i, trail: [], finished: false, stuckTimer: 0, warpCooldown: 0 });
         });
     }
 
@@ -452,7 +630,44 @@
                 const obs = obstacles.find(o => o.body === other);
                 if (obs) obs.hitTime = Date.now();
                 Body.setVelocity(ballInfo.body, { x: (Math.random() - 0.5) * 4, y: -(10 + Math.random() * 5) });
-                spawnZoneParticles(ballInfo.body.position, '#ff4400', 'up');
+                spawnZoneParticles(ballInfo.body.position, '#ff1744', 'up');
+            }
+
+            // Wall bounce segments — random deflection
+            if (label === 'wallbounce_right') {
+                const obs = obstacles.find(o => o.type === 'wallbounce' && o.side === 'right');
+                if (obs) obs.hitTime = Date.now();
+                const power = 3 + Math.random() * 6;
+                const upPower = -(2 + Math.random() * 5);
+                Body.setVelocity(ballInfo.body, { x: -power, y: upPower });
+                spawnZoneParticles(ballInfo.body.position, '#ffea00', 'burst');
+            }
+            if (label === 'wallbounce_left') {
+                const obs = obstacles.find(o => o.type === 'wallbounce' && o.side === 'left');
+                if (obs) obs.hitTime = Date.now();
+                const power = 3 + Math.random() * 6;
+                const upPower = -(2 + Math.random() * 5);
+                Body.setVelocity(ballInfo.body, { x: power, y: upPower });
+                spawnZoneParticles(ballInfo.body.position, '#ffea00', 'burst');
+            }
+
+            // Wormhole entry → teleport to random exit
+            if (label.startsWith('wormhole_entry_')) {
+                const wh = wormholes.find(w => w.body === other);
+                if (wh && Date.now() - (ballInfo.warpCooldown || 0) > 1500) {
+                    const exits = wormholes.filter(w => w.pairType === 'exit');
+                    if (exits.length > 0) {
+                        const dest = exits[Math.floor(Math.random() * exits.length)];
+                        wh.hitTime = Date.now();
+                        dest.hitTime = Date.now();
+                        const offsetX = dest.side === 'left' ? 30 : -30;
+                        Body.setPosition(ballInfo.body, { x: dest.x + offsetX, y: dest.y });
+                        Body.setVelocity(ballInfo.body, { x: (Math.random() - 0.5) * 3, y: 2 + Math.random() * 2 });
+                        ballInfo.warpCooldown = Date.now();
+                        spawnZoneParticles({ x: wh.x, y: wh.y }, wh.color, 'burst');
+                        spawnZoneParticles({ x: dest.x, y: dest.y }, dest.color, 'burst');
+                    }
+                }
             }
 
             if (label === 'finish') {
@@ -493,6 +708,9 @@
         for (const obs of obstacles) {
             if (obs.type === 'spinner') Body.setAngle(obs.body, obs.body.angle + obs.speed);
         }
+        for (const gate of rotatingGates) {
+            Body.setAngle(gate.body, gate.body.angle + gate.speed);
+        }
     }
 
     function getCameraTarget() {
@@ -504,6 +722,40 @@
             }
         }
         return target;
+    }
+
+    // ===================== LIVE RANKING =====================
+
+    function updateLiveRanking() {
+        if (!balls.length) return;
+        const sorted = [...balls].sort((a, b) => {
+            if (a.finished && b.finished) return finishOrder.indexOf(a) - finishOrder.indexOf(b);
+            if (a.finished) return -1;
+            if (b.finished) return 1;
+            return b.body.position.y - a.body.position.y;
+        });
+
+        let html = '<div class="rank-title">LIVE RANK</div>';
+        sorted.forEach((bi, i) => {
+            const rank = i + 1;
+            const stageName = getStageForY(bi.body.position.y);
+            const finishedClass = bi.finished ? ' finished' : '';
+            const medal = bi.finished ? (finishOrder.indexOf(bi) === 0 ? '🥇' : finishOrder.indexOf(bi) === 1 ? '🥈' : finishOrder.indexOf(bi) === 2 ? '🥉' : '') : '';
+            html += `<div class="rank-item${finishedClass}" style="color:${bi.color};border-left:3px solid ${bi.color}">
+                <span class="rank-num">${medal || rank}</span>
+                <span class="rank-dot" style="background:${bi.color};box-shadow:0 0 4px ${bi.color}"></span>
+                <span class="rank-name">${bi.name}</span>
+                <span class="rank-stage">${bi.finished ? 'GOAL' : stageName}</span>
+            </div>`;
+        });
+        liveRanking.innerHTML = html;
+    }
+
+    function getStageForY(y) {
+        for (const s of STAGES) {
+            if (y >= s.yStart && y < s.yEnd) return s.name.split(' ')[0];
+        }
+        return '';
     }
 
     // ===================== WINNER =====================
@@ -587,8 +839,10 @@
         stopFireworks();
         if (engine) { Runner.stop(runner); Composite.clear(engine.world); Engine.clear(engine); }
         engine = null; balls = []; zones = []; obstacles = []; wallBumps = [];
+        wormholes = []; rotatingGates = [];
         finishSensor = null; gameRunning = false; raceComplete = false;
         finishOrder = []; zoneParticles = [];
+        liveRanking.innerHTML = '';
         winnerOverlay.classList.add('hidden');
         gameArea.classList.add('hidden');
         setupPanel.classList.remove('hidden');
@@ -613,28 +867,46 @@
 
         updateSpinners();
         unstickBalls();
+        if (gameRunning) updateLiveRanking();
 
-        // === Stage dividers & labels ===
+        // === Stage backgrounds & dividers ===
         for (const stage of STAGES) {
+            const stageH = stage.yEnd - stage.yStart;
+
+            // Background gradient tint
+            const grad = ctx.createLinearGradient(0, stage.yStart, 0, stage.yEnd);
+            grad.addColorStop(0, stage.color + '12');
+            grad.addColorStop(0.5, stage.color + '18');
+            grad.addColorStop(1, stage.color + '08');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, stage.yStart, w, stageH);
+
+            // Side edge glow
+            const edgeGrad = ctx.createLinearGradient(0, 0, 40, 0);
+            edgeGrad.addColorStop(0, stage.color + '20');
+            edgeGrad.addColorStop(1, stage.color + '00');
+            ctx.fillStyle = edgeGrad;
+            ctx.fillRect(0, stage.yStart, 40, stageH);
+            const edgeGradR = ctx.createLinearGradient(w, 0, w - 40, 0);
+            edgeGradR.addColorStop(0, stage.color + '20');
+            edgeGradR.addColorStop(1, stage.color + '00');
+            ctx.fillStyle = edgeGradR;
+            ctx.fillRect(w - 40, stage.yStart, 40, stageH);
+
             // Divider line
-            ctx.shadowBlur = 6; ctx.shadowColor = stage.color;
-            ctx.strokeStyle = stage.color + '30'; ctx.lineWidth = 1;
-            ctx.setLineDash([8, 12]);
+            ctx.shadowBlur = 8; ctx.shadowColor = stage.color;
+            ctx.strokeStyle = stage.color + '55'; ctx.lineWidth = 1.5;
+            ctx.setLineDash([10, 8]);
             const wPos = getWallX(stage.yStart);
             ctx.beginPath(); ctx.moveTo(wPos.left + 10, stage.yStart); ctx.lineTo(wPos.right - 10, stage.yStart); ctx.stroke();
             ctx.setLineDash([]);
 
             // Stage name
-            ctx.fillStyle = stage.color + '55';
-            ctx.font = '700 10px Orbitron, sans-serif';
+            ctx.fillStyle = stage.color + '88';
+            ctx.font = '700 11px Orbitron, sans-serif';
             ctx.textAlign = 'left';
-            ctx.fillText(stage.name, wPos.left + 20, stage.yStart + 16);
+            ctx.fillText(stage.name, wPos.left + 20, stage.yStart + 18);
             ctx.shadowBlur = 0;
-
-            // Subtle background tint
-            const stageH = stage.yEnd - stage.yStart;
-            ctx.fillStyle = stage.color + '05';
-            ctx.fillRect(0, stage.yStart, w, stageH);
         }
 
         // === Wavy walls ===
@@ -709,10 +981,10 @@
         for (const obs of obstacles) {
             if (obs.type === 'bumper') {
                 const flash = Math.max(0, 1 - (now - obs.hitTime) / 300);
-                ctx.shadowBlur = 12 + flash * 25; ctx.shadowColor = '#ff8800';
+                ctx.shadowBlur = 12 + flash * 25; ctx.shadowColor = '#ff9100';
                 ctx.beginPath(); ctx.arc(obs.x, obs.y, obs.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 136, 0, ${0.1 + flash * 0.35})`; ctx.fill();
-                ctx.strokeStyle = `rgba(255, 160, 0, ${0.6 + flash * 0.4})`; ctx.lineWidth = 2.5 + flash * 2; ctx.stroke();
+                ctx.fillStyle = `rgba(255, 145, 0, ${0.1 + flash * 0.35})`; ctx.fill();
+                ctx.strokeStyle = `rgba(255, 170, 0, ${0.6 + flash * 0.4})`; ctx.lineWidth = 2.5 + flash * 2; ctx.stroke();
                 const ip = 0.6 + Math.sin(now * 0.008) * 0.4;
                 ctx.beginPath(); ctx.arc(obs.x, obs.y, obs.r * 0.5 * ip, 0, Math.PI * 2);
                 ctx.strokeStyle = `rgba(255, 220, 80, ${0.4 + flash * 0.5})`; ctx.lineWidth = 1.5; ctx.stroke();
@@ -723,19 +995,19 @@
             if (obs.type === 'spinner') {
                 ctx.save(); ctx.translate(obs.body.position.x, obs.body.position.y); ctx.rotate(obs.body.angle);
                 const hw = obs.w / 2;
-                ctx.shadowBlur = 10; ctx.shadowColor = '#aa44ff'; ctx.fillStyle = '#aa44ff';
+                ctx.shadowBlur = 10; ctx.shadowColor = '#d050ff'; ctx.fillStyle = '#d050ff';
                 roundRect(ctx, -hw, -3, obs.w, 6, 3); ctx.fill();
-                ctx.beginPath(); ctx.arc(-hw, 0, 4, 0, Math.PI * 2); ctx.fillStyle = '#dd88ff'; ctx.fill();
+                ctx.beginPath(); ctx.arc(-hw, 0, 4, 0, Math.PI * 2); ctx.fillStyle = '#e088ff'; ctx.fill();
                 ctx.beginPath(); ctx.arc(hw, 0, 4, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fillStyle = '#ddaaff'; ctx.fill();
+                ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fillStyle = '#e0aaff'; ctx.fill();
                 ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
                 ctx.shadowBlur = 0; ctx.restore();
             }
             if (obs.type === 'ramp') {
                 ctx.save(); ctx.translate(obs.body.position.x, obs.body.position.y); ctx.rotate(obs.body.angle);
-                ctx.shadowBlur = 8; ctx.shadowColor = '#00ddff'; ctx.fillStyle = '#00ddff';
+                ctx.shadowBlur = 8; ctx.shadowColor = '#00e676'; ctx.fillStyle = '#00e676';
                 roundRect(ctx, -obs.w / 2, -obs.h / 2, obs.w, obs.h, 2.5); ctx.fill();
-                ctx.strokeStyle = 'rgba(0,255,255,0.4)'; ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(0,230,118,0.4)'; ctx.lineWidth = 1;
                 const dir = obs.angle > 0 ? 1 : -1;
                 for (let ci = -1; ci <= 1; ci++) { ctx.beginPath(); ctx.moveTo(ci * 14 - 3 * dir, -3); ctx.lineTo(ci * 14 + 3 * dir, 0); ctx.lineTo(ci * 14 - 3 * dir, 3); ctx.stroke(); }
                 ctx.shadowBlur = 0; ctx.restore();
@@ -743,13 +1015,13 @@
             if (obs.type === 'launcher') {
                 const flash = Math.max(0, 1 - (now - obs.hitTime) / 400);
                 const pulse = 0.6 + Math.sin(now * 0.008) * 0.4;
-                ctx.shadowBlur = 15 + flash * 25; ctx.shadowColor = '#ff4400';
+                ctx.shadowBlur = 15 + flash * 25; ctx.shadowColor = '#ff1744';
                 ctx.beginPath(); ctx.arc(obs.x, obs.y, obs.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 68, 0, ${0.1 + flash * 0.4})`; ctx.fill();
-                ctx.strokeStyle = `rgba(255, 68, 0, ${0.5 + flash * 0.5})`; ctx.lineWidth = 2.5 + flash * 2; ctx.stroke();
+                ctx.fillStyle = `rgba(255, 23, 68, ${0.1 + flash * 0.4})`; ctx.fill();
+                ctx.strokeStyle = `rgba(255, 23, 68, ${0.5 + flash * 0.5})`; ctx.lineWidth = 2.5 + flash * 2; ctx.stroke();
                 ctx.beginPath(); ctx.arc(obs.x, obs.y, obs.r * 0.6 * pulse, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(255,150,50,${0.4 + pulse * 0.3})`; ctx.lineWidth = 1.5; ctx.stroke();
-                ctx.fillStyle = `rgba(255,100,0,${0.7 + flash * 0.3})`;
+                ctx.strokeStyle = `rgba(255,100,100,${0.4 + pulse * 0.3})`; ctx.lineWidth = 1.5; ctx.stroke();
+                ctx.fillStyle = `rgba(255,50,50,${0.7 + flash * 0.3})`;
                 ctx.beginPath();
                 ctx.moveTo(obs.x, obs.y - 7); ctx.lineTo(obs.x - 5, obs.y + 2); ctx.lineTo(obs.x - 2, obs.y + 2);
                 ctx.lineTo(obs.x - 2, obs.y + 6); ctx.lineTo(obs.x + 2, obs.y + 6); ctx.lineTo(obs.x + 2, obs.y + 2);
@@ -758,15 +1030,141 @@
             }
         }
 
-        // === Pins ===
+        // === Pins (colored per stage) ===
         const allBodies = Composite.allBodies(engine.world);
-        ctx.shadowBlur = 8; ctx.shadowColor = '#00ffff'; ctx.fillStyle = '#00ffff';
         for (const body of allBodies) {
             if (body.label === 'pin') {
+                const py = body.position.y;
+                let pinColor = '#00ffff';
+                for (const stage of STAGES) {
+                    if (py >= stage.yStart && py < stage.yEnd) { pinColor = stage.color; break; }
+                }
+                ctx.shadowBlur = 8; ctx.shadowColor = pinColor; ctx.fillStyle = pinColor;
                 ctx.beginPath(); ctx.arc(body.position.x, body.position.y, PIN_RADIUS, 0, Math.PI * 2); ctx.fill();
             }
         }
         ctx.shadowBlur = 0;
+
+        // === Wormholes ===
+        for (const wh of wormholes) {
+            const flash = Math.max(0, 1 - (now - wh.hitTime) / 600);
+            const pulse = 0.6 + Math.sin(now * 0.005 + wh.y * 0.01) * 0.4;
+            const r = wh.r;
+            const isEntry = wh.pairType === 'entry';
+
+            // Outer glow ring
+            ctx.shadowBlur = 20 + flash * 30; ctx.shadowColor = wh.color;
+            ctx.beginPath(); ctx.arc(wh.x, wh.y, r + 2, 0, Math.PI * 2);
+            ctx.strokeStyle = wh.color + hexAlpha(0.5 + flash * 0.5); ctx.lineWidth = 2.5 + flash * 2; ctx.stroke();
+
+            // Dark center (black hole effect)
+            const centerGrad = ctx.createRadialGradient(wh.x, wh.y, 0, wh.x, wh.y, r);
+            centerGrad.addColorStop(0, '#000000');
+            centerGrad.addColorStop(0.6, '#0a0a2e');
+            centerGrad.addColorStop(1, wh.color + '30');
+            ctx.beginPath(); ctx.arc(wh.x, wh.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = centerGrad; ctx.fill();
+
+            // Spinning spiral
+            ctx.strokeStyle = wh.color + hexAlpha(0.4 + pulse * 0.3); ctx.lineWidth = 1.5;
+            const spiralOffset = now * 0.003 * (isEntry ? 1 : -1);
+            for (let arm = 0; arm < 3; arm++) {
+                ctx.beginPath();
+                for (let t = 0; t < Math.PI * 2; t += 0.15) {
+                    const sr = t * r / (Math.PI * 2);
+                    const angle = t + spiralOffset + (arm * Math.PI * 2 / 3);
+                    const sx = wh.x + Math.cos(angle) * sr;
+                    const sy = wh.y + Math.sin(angle) * sr;
+                    t === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
+                }
+                ctx.stroke();
+            }
+
+            // Inner bright dot
+            ctx.beginPath(); ctx.arc(wh.x, wh.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = wh.color + hexAlpha(0.6 + pulse * 0.4); ctx.fill();
+
+            // Label
+            ctx.fillStyle = wh.color + hexAlpha(0.5 + flash * 0.3);
+            ctx.font = '700 7px Orbitron, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(isEntry ? 'WARP' : 'EXIT', wh.x, wh.y + r + 12);
+            ctx.shadowBlur = 0;
+        }
+
+        // === Wall bounce segments (glowing wall sections) ===
+        for (const obs of obstacles) {
+            if (obs.type !== 'wallbounce') continue;
+            const flash = Math.max(0, 1 - (now - obs.hitTime) / 500);
+            const pulse = 0.5 + Math.sin(now * 0.006) * 0.3;
+            const yTop = obs.y - obs.h / 2;
+            const yBot = obs.y + obs.h / 2;
+
+            // Draw glowing wall segment
+            const wpTop = getWallX(yTop);
+            const wpBot = getWallX(yBot);
+            const isRight = obs.side === 'right';
+
+            ctx.shadowBlur = 15 + flash * 25; ctx.shadowColor = '#ffea00';
+            ctx.strokeStyle = `rgba(255, 234, 0, ${0.5 + flash * 0.5 + pulse * 0.2})`;
+            ctx.lineWidth = 5 + flash * 3;
+            ctx.beginPath();
+            if (isRight) {
+                ctx.moveTo(wpTop.right - 5, yTop);
+                ctx.lineTo(wpBot.right - 5, yBot);
+            } else {
+                ctx.moveTo(wpTop.left + 5, yTop);
+                ctx.lineTo(wpBot.left + 5, yBot);
+            }
+            ctx.stroke();
+
+            // Glow fill behind
+            ctx.fillStyle = `rgba(255, 234, 0, ${0.05 + flash * 0.15 + pulse * 0.05})`;
+            const cx = isRight ? wpTop.right - 20 : wpTop.left + 20;
+            ctx.beginPath();
+            ctx.ellipse(cx, obs.y, 15, obs.h / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Small arrows showing bounce direction
+            const arrowX = isRight ? wpTop.right - 18 : wpTop.left + 18;
+            const arrowDir = isRight ? -1 : 1;
+            ctx.fillStyle = `rgba(255, 255, 200, ${0.4 + flash * 0.4 + pulse * 0.2})`;
+            for (let ai = 0; ai < 3; ai++) {
+                const ay = obs.y - 15 + ai * 15;
+                ctx.beginPath();
+                ctx.moveTo(arrowX + arrowDir * 6, ay);
+                ctx.lineTo(arrowX, ay - 4);
+                ctx.lineTo(arrowX, ay + 4);
+                ctx.closePath(); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // === Rotating gates ===
+        for (const gate of rotatingGates) {
+            ctx.save();
+            ctx.translate(gate.body.position.x, gate.body.position.y);
+            ctx.rotate(gate.body.angle);
+            const hw = gate.w / 2;
+            const pulse = 0.6 + Math.sin(now * 0.004) * 0.4;
+
+            ctx.shadowBlur = 12; ctx.shadowColor = '#ffea00';
+            // Main bar
+            ctx.fillStyle = `rgba(255, 234, 0, ${0.25 + pulse * 0.15})`;
+            roundRect(ctx, -hw, -4, gate.w, 8, 4); ctx.fill();
+            ctx.strokeStyle = `rgba(255, 234, 0, ${0.6 + pulse * 0.3})`; ctx.lineWidth = 1.5;
+            roundRect(ctx, -hw, -4, gate.w, 8, 4); ctx.stroke();
+            // Center pivot
+            ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffea00'; ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff'; ctx.fill();
+            // End caps
+            ctx.beginPath(); ctx.arc(-hw + 4, 0, 4, 0, Math.PI * 2); ctx.fillStyle = '#ffea0088'; ctx.fill();
+            ctx.beginPath(); ctx.arc(hw - 4, 0, 4, 0, Math.PI * 2); ctx.fill();
+
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
 
         // === Finish line ===
         const finishWall = getWallX(FINISH_Y);
